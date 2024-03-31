@@ -1,34 +1,44 @@
 #Requires -Modules Microsoft.PowerShell.ConsoleGuiTools
 using namespace Terminal.Gui
 
+$TermGuiModule = 'Terminal.Gui.dll'
+$NStackModule = 'NStack.dll'
+$ConsoleGuiModule = 'Microsoft.PowerShell.ConsoleGuiTools'
+
 function Find-TerminalGuiDll {
 	[OutputType([string])]
 	param()
 
-	$m = Get-Module -Name 'Microsoft.PowerShell.ConsoleGuiTools'
+	$m = Get-Module -Name $ConsoleGuiModule
 	
 	if ($m -eq $null) {
 		throw "Microsoft.PowerShell.ConsoleGuiTools module not found"
 	}
-	$f = $(Resolve-Path "$($m.Path)\..") 
-	$i = Get-ChildItem -Path $f -Filter 'Terminal.Gui.dll'
-	$i2 = Get-ChildItem -Path $f -Filter 'NStack.dll'
-	$p = Resolve-Path $i
-	return $p
+	$p = $m.Path
+	
+	$d1 = Get-ChildItem -Path $p -Recurse -Filter $NStackModule -ErrorAction SilentlyContinue
+	$d2 = Get-ChildItem -Path $p -Recurse -Filter $TermGuiModule -ErrorAction SilentlyContinue
+
+	return $d1,$d2
 }
 
-Add-Type -Path $(Find-TerminalGuiDll)
+function Add-TerminalGuiTypes {
+	[OutputType([void])]
+	param()
+
+	$modulePaths = Find-TerminalGuiDll
+	$modulePaths | % {
+		
+		Add-Type -Path $_
+	}
+	
+}
+
 
 function New-TGApplication {
-
+	
 	
 	return [Terminal.Gui.Application]::new()
 }
 
-
-
-[Terminal.Gui.TableView]::new([System.Collections.Generic.List[object]]::new([object[]]@(
-			[object[]]@('Name', 'Value'),
-			[object[]]@('Name', 'Value'),
-			[object[]]@('Name', 'Value')
-		)))
+Add-TerminalGuiTypes
